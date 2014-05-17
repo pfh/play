@@ -68,7 +68,8 @@ def view(thing):
     pyplot.show()
 
 
-def extrude(prefix, thing):
+def make(prefix, thing):
+    # Double size, allow 0.2mm gap between pieces
     thing = affinity.scale(thing,2.0,2.0).buffer(-0.1)
     
     (minx, miny, maxx, maxy) = thing.bounds
@@ -185,12 +186,16 @@ if __name__ == '__main__':
         mid = (i>>1)&1
         left = (i>>2)&1
         filled = (rule>>i)&1
-        if not (right or mid or left or filled): continue
+        #if not (right or mid or left or filled): continue
         cells.append(
-            affinity.translate(cell(filled, left,mid,right), (i//2-2)*15, (i%2-1)*15)
+            affinity.translate(cell(filled, left,mid,right), (i%4-2)*15, (i//4-1)*15)
             )
     
-    extrude('output/big_bang', big_bang)
-    extrude('output/rule-%d-cells' % rule, ops.cascaded_union(cells))
+    union_cells = ops.cascaded_union(cells)
+    
+    make('output/big_bang', big_bang)
+    make('output/rule-%d-cells' % rule, union_cells)
+    
+    view(union_cells)
     
     
