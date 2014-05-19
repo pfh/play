@@ -1,13 +1,7 @@
 
 import sys, os
 
-
-#from descartes import patch
-
-
 from shapely import geometry, affinity, ops
-
-#from demakein import shape
 
 def points_and_paths(thing):
     points = [ ]
@@ -60,12 +54,13 @@ def as_patch(thing, **kwargs):
 def view(thing):
     from matplotlib import pyplot
 
+    pyplot.figure()
     pyplot.gca().add_patch(as_patch(thing))    
     (minx, miny, maxx, maxy) = thing.bounds
     pyplot.xlim(minx-5,maxx+5)
     pyplot.ylim(miny-5,maxy+5)
     pyplot.gca().set_aspect(1)
-    pyplot.show()
+    #pyplot.show()
 
 
 def make(prefix, thing):
@@ -193,9 +188,12 @@ if __name__ == '__main__':
     
     union_cells = ops.cascaded_union(cells)
     
-    make('output/big_bang', big_bang)
+    make('output/big-bang', big_bang)
     make('output/rule-%d-cells' % rule, union_cells)
     
-    view(union_cells)
+    #view(big_bang)
+    #view(union_cells)
+    #from matplotlib import pyplot
+    #pyplot.show()
     
     
