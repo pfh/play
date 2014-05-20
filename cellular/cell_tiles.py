@@ -64,11 +64,11 @@ def view(thing):
 
 
 def make(prefix, thing):
-    # Double size, allow 0.2mm gap between pieces
-    thing = affinity.scale(thing,2.0,2.0).buffer(-0.1)
+    # Double size
+    thing = affinity.scale(thing,2.0,2.0)
     
     (minx, miny, maxx, maxy) = thing.bounds
-    thing = affinity.translate(thing,
+    thing_shifted = affinity.translate(thing,
         -(minx+maxx)/2.0,
         -(miny+maxy)/2.0)
 
@@ -76,13 +76,22 @@ def make(prefix, thing):
         f.write(
              'union() { ' +             
              'linear_extrude(height=4) '+
-             as_openscad(thing.buffer(-0.5))+';'
+             as_openscad(thing_shifted.buffer(-0.6))+';'
              'translate([0,0,0.5]) ' +
              'linear_extrude(height=3.0) '+
-             as_openscad(thing)+';'
+             as_openscad(thing_shifted.buffer(-0.1))+';' # Allow 0.2mm between pieces
              '}'
              )
-                
+
+    (minx, miny, maxx, maxy) = thing.bounds
+    thing_shifted = affinity.translate(thing,
+         -minx,
+         -miny)
+    
+    with open(prefix+'-2D.scad','wb') as f: 
+        f.write(
+             as_openscad(thing_shifted) + ';'
+             )
     
 
 directions = [(1,0),(0,1),(-1,0),(0,-1)]
