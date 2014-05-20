@@ -65,10 +65,10 @@ def view(thing):
 
 def make(prefix, thing):
     # Double size
-    thing = affinity.scale(thing,2.0,2.0)
+    thing_big = affinity.scale(thing,2.0,2.0)
     
-    (minx, miny, maxx, maxy) = thing.bounds
-    thing_shifted = affinity.translate(thing,
+    (minx, miny, maxx, maxy) = thing_big.bounds
+    thing_shifted = affinity.translate(thing_big,
         -(minx+maxx)/2.0,
         -(miny+maxy)/2.0)
 
@@ -85,8 +85,8 @@ def make(prefix, thing):
 
     (minx, miny, maxx, maxy) = thing.bounds
     thing_shifted = affinity.translate(thing,
-         -minx,
-         -miny)
+         5-minx,
+         5-miny)
     
     with open(prefix+'-2D.scad','wb') as f: 
         f.write(
