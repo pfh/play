@@ -1,0 +1,19 @@
+
+Shift into positive x,y
+
+DXF ->
+
+(examine DXF in librecad)
+
+CamBam
+- use test pieces to calibrate power
+- CamBam plugin in github somewhere?
+- CCHS laptops have CamBam with license,  mono 2.10.8.1
+-- see instruction sheet behind laser cutter
+
+Acrylic
+Align at 5,5mm
+
+Print area is 440(x)x280(y)
+
+Laser does have a cutting radius (material dependant).
