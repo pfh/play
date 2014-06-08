@@ -116,10 +116,13 @@ def bigger(spec, scale=2):
 
 
 
-nub_left = 'n lffnlfn rffrffn ffrffn rfnlffn l'
+#nub_left = 'nff n lffnlfn rffrffn ffrffn rfnlffn l ffn'
+nub_left = 'nff n lffnlfn rffrffn ffrffn rfnlffn l rfnlfnflfnr'
 nublet_left = 'n lfnlfn rffrffn ffrffn rfnlfn l'
-nub_right = mirror(nub_left)
+bump_left = 'n lfrfn frfln'
+nub_right = mirror(nub_left[::-1]) #mirror(nub_left)
 nublet_right = mirror(nublet_left)
+bump_right = mirror(bump_left)
 flat = 'n ffn'
 a = 'nff'
 b = 'ffnl'
@@ -128,9 +131,9 @@ b = 'ffnl'
 def cell(filled, left,mid,right):
     outline = (
         a +
-        flat + 
-        (nub_right if filled else flat) + 
-        flat + 
+        #flat + 
+        (nub_right if filled else flat*3) + 
+        #bump_left +
         b +
         
         a + 
@@ -140,9 +143,9 @@ def cell(filled, left,mid,right):
         b +
         
         a +
-        flat + 
-        (nub_left if mid else flat) + 
-        flat + 
+        #bump_right + 
+        (nub_left if mid else flat*3) + 
+        #flat + 
         b +
         
         a + 
@@ -158,13 +161,13 @@ def cell(filled, left,mid,right):
 
 
 big_bang = geometry.Polygon(points(
-    a + flat + nub_right + flat + b +
+    a + nub_right + b +
     (a + flat*3 + b) * 3
     ))
 
 big_bang = big_bang.difference(geometry.Polygon(points(
     'ffflfffffffffr' +
-    bigger(nub_right + 'll' + flat, 2)
+    bigger(nublet_right + 'll' + flat, 2)
     )))
 
 
