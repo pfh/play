@@ -17,3 +17,4 @@ Align at 5,5mm
 Print area is 440(x)x280(y)
 
 Laser does have a cutting radius (material dependant).
+0.15 - 0.2 mm radius
