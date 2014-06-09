@@ -93,6 +93,14 @@ def make(prefix, thing):
              as_openscad(thing_shifted) + ';'
              )
     
+    print 'Build', prefix
+    assert 0 == os.system(
+        'openscad -o %s.stl %s.scad' % (prefix,prefix)
+        )
+    assert 0 == os.system(
+        'openscad -o %s-2D.dxf %s-2D.scad' % (prefix,prefix)
+        )
+    
 
 directions = [(1,0),(0,1),(-1,0),(0,-1)]
 
