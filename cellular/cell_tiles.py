@@ -63,7 +63,7 @@ def view(thing):
     #pyplot.show()
 
 
-def make(prefix, thing):
+def make(prefix, thing, stl=True):
     # Double size
     thing_big = affinity.scale(thing,2.0,2.0)
     
@@ -83,8 +83,8 @@ def make(prefix, thing):
              '}'
              )
 
-    (minx, miny, maxx, maxy) = thing.bounds
-    thing_shifted = affinity.translate(thing,
+    (minx, miny, maxx, maxy) = thing_big.bounds
+    thing_shifted = affinity.translate(thing_big,
          5-minx,
          5-miny)
     
@@ -93,10 +93,11 @@ def make(prefix, thing):
              as_openscad(thing_shifted) + ';'
              )
     
-    print 'Build', prefix
-    assert 0 == os.system(
-        'openscad -o %s.stl %s.scad' % (prefix,prefix)
-        )
+    print 'Build', prefix, maxx-minx, 'mm x', maxy-miny, 'mm'
+    if stl:
+        assert 0 == os.system(
+            'openscad -o %s.stl %s.scad' % (prefix,prefix)
+            )
     assert 0 == os.system(
         'openscad -o %s-2D.dxf %s-2D.scad' % (prefix,prefix)
         )
@@ -145,7 +146,7 @@ a = 'nff'
 b = 'ffnl'
 
 
-def cell(filled, left,mid,right):
+def cell(filled, left,mid,right, cutout=True):
     outline = (
         a +
         #flat + 
@@ -172,21 +173,32 @@ def cell(filled, left,mid,right):
         b
         )
     shape = geometry.Polygon(points(outline))
-    if not filled:
+    if cutout and not filled:
        shape = shape.difference(shape.buffer(-2).buffer(1))
     return shape
 
 
-big_bang = geometry.Polygon(points(
+big_bang_exterior = geometry.Polygon(points(
     a + nub_right + b +
     (a + flat*3 + b) * 3
     ))
 
-big_bang = big_bang.difference(geometry.Polygon(points(
+big_bang_hole = geometry.Polygon(points(
     'ffflfffffffffr' +
     bigger(nublet_right + 'll' + flat, 2)
-    )))
+    ))
+    
+big_bang = big_bang_exterior.difference(big_bang_hole)
 
+
+
+def pack(items):
+    shifted = [ ]
+    for i, item in enumerate(items):
+        shifted.append(
+            affinity.translate(item, (i%6)*15, (i//6)*15)
+            )
+    return ops.cascaded_union(shifted)
 
 if __name__ == '__main__':
     if not os.path.exists('output'):
@@ -196,20 +208,39 @@ if __name__ == '__main__':
     
     rule = int(sys.argv[1])
     
-    for i in xrange(8):
-        right = i&1
-        mid = (i>>1)&1
-        left = (i>>2)&1
-        filled = (rule>>i)&1
-        #if not (right or mid or left or filled): continue
-        cells.append(
-            affinity.translate(cell(filled, left,mid,right), (i%4-2)*15, (i//4-1)*15)
-            )
+    if 0:
+        for i in xrange(8):
+            right = i&1
+            mid = (i>>1)&1
+            left = (i>>2)&1
+            filled = (rule>>i)&1
+            #if not (right or mid or left or filled): continue
+            cells.append(
+                affinity.translate(cell(filled, left,mid,right), (i%4-2)*15, (i//4-1)*15)
+                )
+        
+        union_cells = ops.cascaded_union(cells)
+        
+        make('output/big-bang', big_bang)
+        make('output/rule-%d-cells' % rule, union_cells)
     
-    union_cells = ops.cascaded_union(cells)
+    if 1:
+        black = [ ]
+        white = [ ]
+        for i in xrange(8):
+            right = i&1
+            mid = (i>>1)&1
+            left = (i>>2)&1
+            filled = (rule>>i)&1
+            item = cell(filled, left,mid,right, cutout=False)
+            (black if filled else white).append(item)
+
+        n = 13
+        make('output/rule-%d-black' % rule, pack([big_bang] + black*n), stl=False)
+        make('output/rule-%d-white' % rule, pack([big_bang_hole] + white*n), stl=False)
     
-    make('output/big-bang', big_bang)
-    make('output/rule-%d-cells' % rule, union_cells)
+    
+    
     
     #view(big_bang)
     #view(union_cells)
