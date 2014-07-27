@@ -2,27 +2,25 @@
 
 import subprocess, sys, os, socket, time
 
-try:
-    addr = sys.argv[1]
-    
-    port = '12345'
-    
-    sproc = subprocess.Popen(['ssh','-t','-D',port,addr,'tmux attach || tmux'])
-    
-    while True:
-        if sproc.poll() != None: break
-        try:
-            s = socket.create_connection(('127.0.0.1',12345))
-            s.close()
-            break
-        except socket.error:
-            pass
-        time.sleep(0.1)
-    
-    if sproc.poll() == None:    
-        chrom = subprocess.Popen(['chromium-browser','--proxy-server=socks5://localhost:'+port])
-        chrom.wait()    
-        sproc.kill()
-finally:
-    os.system('reset')
+[ addr ] = sys.argv[1:]
+
+port = '12345'
+
+sproc = subprocess.Popen(['xterm','-e','ssh','-t','-D',port,addr,'tmux attach || tmux'])
+
+while True:
+    if sproc.poll() != None: break
+    try:
+        s = socket.create_connection(('127.0.0.1',12345))
+        s.close()
+        break
+    except socket.error:
+        pass
+    time.sleep(0.1)
+
+if sproc.poll() == None:
+    print 'Start chromium'    
+    chrom = subprocess.Popen(['chromium-browser','--proxy-server=socks5://localhost:'+port])
+    chrom.wait()    
+    sproc.kill()
 
