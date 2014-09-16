@@ -144,7 +144,7 @@ def make_file_completion(callback):
         if text.startswith('~') and 'HOME' in os.environ:
             text = os.environ.get('HOME') + text[1:]
         files = glob.glob(text + '*')
-        files.sort()
+        files.sort(key=lambda item: (not os.path.isdir(item), item.lower(), item))
         for filename in files:
             if filename.endswith('~'): continue
             if os.path.split(filename)[1].startswith('.'): continue
