@@ -1,4 +1,10 @@
-#!/usr/bin/env python
+#!/bin/sh -
+''''\
+exec /usr/local/bin/python2 $0 $@
+exec python2 $0 $@
+echo python2 not found
+exit 1
+'''
 
 #    Copyright (C) 2007 Paul Harrison
 #    This program is free software; you can redistribute it and/or modify
