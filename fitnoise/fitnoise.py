@@ -39,7 +39,7 @@ if not have_theano:
 
 
 import numpy, numpy.linalg, numpy.random
-import scipy, scipy.optimize
+import scipy, scipy.optimize, scipy.stats
 
 
 def is_theanic(x):
@@ -155,12 +155,13 @@ class Mvnormal(object):
 
 
     # Not available for theano
+    @property
     def good(self):
         result = numpy.isfinite(self.mean)
         for i in xrange(len(self.covar)):
             result = result & numpy.isfinite(self.covar[i])
         return result
-
+    
     
     def log_density(self, x):
         x = as_vector(x)
@@ -174,6 +175,14 @@ class Mvnormal(object):
             + dot(offset, dot(inverse(self.covar), offset))
             )
 
+    
+    def p_value(self, x):
+        x = as_vector(x)
+        offset = x - self.mean
+        df = self.covar.shape[0]
+        q = dot(offset, dot(inverse(self.covar), offset))
+        return stats.chi2.sf(q, df=df)
+    
     
     # Not available for theano
     def random(self):
@@ -202,7 +211,7 @@ class Mvnormal(object):
     def conditional(self, i1,i2,x2):
         i1 = as_vector(i, 'int32')
         i2 = as_vector(i, 'int32')
-        x = as_vector(x)
+        x2 = as_vector(x2)
         
         mean1 = take(self.mean,i1,0)
         mean2 = take(self.mean,i2,0)
@@ -228,6 +237,7 @@ class Mvt(object):
         self.df = as_scalar(df)
 
 
+    @property
     def good(self):
         result = numpy.isfinite(self.mean)
         for i in xrange(len(self.covar)):
@@ -247,8 +257,70 @@ class Mvt(object):
             - 0.5*log(det(self.covar))
             - (0.5*(v+p))*log(1+dot(offset, dot(inverse(self.covar), offset))/v)
             )
-            
     
+    
+    def p_value(self, x):
+        x = as_vector(x)
+        offset = x - self.mean
+        p = self.covar.shape[0]
+        q = dot(offset, dot(inverse(self.covar), offset)) / p
+        return stats.f.sf(q, dfn=p, dfd=self.df)
+
+
+    def random(self):
+        A = cholesky(self.covar)
+        return (
+            self.mean 
+            + dot(A.T,numpy.random.normal(size=len(self.mean)))
+              * numpy.random.chisquare(self.df) 
+            )
+    
+    
+    def transformed(self, A):
+        A = as_matrix(A)
+        return Mvt(
+            dot(A,self.mean),
+            dot(dot(A,self.covar),A.T),
+            self.df
+            )
+
+            
+    def shifted(self, x):
+        x = as_matrix(x)
+        return Mvt(self.mean+x, self.covar, self.df)
+
+
+    def marginal(self, i):
+        i = as_vector(i, 'int32')
+        return Mvt(take(self.mean,i,0), take2(self.covar,i,i), self.df)
+
+
+    def conditional(self, i1,i2,x2):
+        i1 = as_vector(i, 'int32')
+        i2 = as_vector(i, 'int32')
+        x2 = as_vector(x2)
+        p2 = len(i2)
+        
+        mean1 = take(self.mean,i1,0)
+        mean2 = take(self.mean,i2,0)
+        offset2 = x2-mean2
+        
+        covar11 = take2(self.covar,i1,i1) 
+        covar12 = take2(self.covar,i1,i2)
+        covar21 = take2(self.covar,i2,i1)
+        covar22 = take2(self.covar,i2,i2)
+        covar22inv = inverse(covar22)
+        covar12xcovar22inv = dot(covar12, covar22inv)
+        
+        df = self.df
+        
+        return Mvt(
+            mean1 + dot(covar12xcovar22inv,offset2),
+            (covar11 - dot(covar12xcovar22inv,covar21))
+              * ((df + dot(offset2,dot(covar22inv,offset2)) / (df + p2)),
+            df + p2
+            )
+
 
 
 class _object(object): pass
@@ -268,7 +340,7 @@ def fit_noise(y, design, get_dist, initial):
         item = _object()
         item.row = row
         item.retain = numpy.arange(m)[ 
-            numpy.isfinite(y[row]) & get_dist(row,initial).good() 
+            numpy.isfinite(y[row]) & get_dist(row,initial).good
             ]
         if len(item.retain) <= design.shape[1]: continue
         
@@ -359,7 +431,7 @@ def fit_noise(y, design, get_dist, initial):
 #qrtA = qr_complete(tA)
 #print theano.function([tA],qrtA)(A)
 
-dist = Mvnormal([5,5],[[1,0],[0,1]])
+dist = Mvnormal([5,5,5,5],numpy.identity(4))
 
 data = numpy.array([ dist.random() for i in xrange(1000) ])
 #print data
@@ -369,7 +441,9 @@ data = numpy.array([ dist.random() for i in xrange(1000) ])
 #pylab.show()
 print data.shape
 
-print fit_noise(data, [[1],[1]], lambda i,p: Mvnormal([0,0],p[0]*numpy.identity(2)), [0.5])
+print fit_noise(data, [[1],[1],[1],[1]], 
+    lambda i,p: Mvnormal([0,0,0,0],p*numpy.identity(4)), 
+    [0.5,0.5,0.5,0.5])
 
 
 
