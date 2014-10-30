@@ -39,7 +39,7 @@ if not have_theano:
 
 
 import numpy, numpy.linalg, numpy.random
-import scipy, scipy.optimize, scipy.stats
+import scipy, scipy.optimize, scipy.stats, scipy.special
 
 
 def is_theanic(x):
@@ -77,29 +77,10 @@ def as_matrix(x, dtype='float64'):
 def dot(a,b):
     a = as_tensor(a)
     b = as_tensor(b)
-    
-    #print
-    #print a
-    #print b
-    #print numpy.dot(a,b)
-    #va = tensor.TensorType('float64',(False,)*a.ndim)('a')
-    #vb = tensor.TensorType('float64',(False,)*b.ndim)('b')
-    #print theano.function([va,vb],tensor.dot(va,vb))(a,b)
-    #print
-    
     return (
         tensor.dot if is_theanic(a) or is_theanic(b) 
         else numpy.dot
         )(a,b)
-
-
-#def inner(a,b):
-#    a = as_tensor(a)
-#    b = as_tensor(b)
-#    return (
-#        tensor.inner if is_theanic(a) or is_theanic(b) 
-#        else numpy.inner
-#        )(a,b)
 
 
 def take(a,indices,axis):
@@ -116,6 +97,37 @@ def take2(a,i0,i1):
 def log(x):
     x = as_tensor(x)
     return (tensor.log if is_theanic(x) else numpy.log)(x)
+
+
+#From Numerical Recipes in C
+def lanczos_gammaln(x):
+    x = as_tensor(x)
+    y = x
+    tmp = x + 5.5
+    tmp = tmp - (x+0.5)*log(tmp)
+    ser = 1.000000000190015
+    for cof in (
+        76.18009172947146, 
+        -86.50532032941677, 
+        24.01409824083091, 
+        -1.231739572450155, 
+        0.1208650973866179e-2, 
+        -0.5395239384953e-5,
+        ):
+        y = y + 1
+        ser = ser + cof / y
+    return -tmp + log(2.5066282746310005*ser/x)
+
+
+def gammaln(x):
+    x = as_tensor(x)
+    return lanczos_gammaln(x) if is_theanic(x) else scipy.special.gammaln(x)
+
+
+#for i in xrange(1,10):
+#    x = i
+#    print numpy.exp(gammaln(x)), numpy.exp(lanczos_gammaln(x))
+#import sys;sys.exit(0)
 
 
 def inverse(A):
@@ -317,7 +329,7 @@ class Mvt(object):
         return Mvt(
             mean1 + dot(covar12xcovar22inv,offset2),
             (covar11 - dot(covar12xcovar22inv,covar21))
-              * ((df + dot(offset2,dot(covar22inv,offset2)) / (df + p2)),
+              * ((df + dot(offset2,dot(covar22inv,offset2))) / (df + p2)),
             df + p2
             )
 
@@ -325,7 +337,7 @@ class Mvt(object):
 
 class _object(object): pass
 
-def fit_noise(y, design, get_dist, initial):
+def fit_noise(y, design, get_dist, initial, use_theano=True):
     y = as_matrix(y)
     design = as_matrix(design)
     initial = as_vector(initial)
@@ -366,6 +378,10 @@ def fit_noise(y, design, get_dist, initial):
             for item in items
             )
 
+    if not use_theano:
+        return scipy.optimize.fmin(score, initial)
+
+
     vrow = tensor.iscalar('row')
     vretain = tensor.ivector('retain')
     vtQ2 = tensor.dmatrix('tQ2')
@@ -401,7 +417,7 @@ def fit_noise(y, design, get_dist, initial):
         return total_value, total_gradient, total_hessian
     
     param = initial
-    for i in xrange(10):
+    for i in xrange(20):
         v,g,h = value_gradient_hessian(param)
         print param, v
         param = param - numpy.linalg.solve(h,g)
@@ -442,8 +458,9 @@ data = numpy.array([ dist.random() for i in xrange(1000) ])
 print data.shape
 
 print fit_noise(data, [[1],[1],[1],[1]], 
-    lambda i,p: Mvnormal([0,0,0,0],p*numpy.identity(4)), 
-    [0.5,0.5,0.5,0.5])
+    lambda i,p: Mvt([0,0,0,0],p[1:]*numpy.identity(4), p[0]), 
+    [5.0, 0.5,0.5,0.5,0.5],
+    use_theano=1)
 
 
 
