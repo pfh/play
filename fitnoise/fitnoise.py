@@ -401,7 +401,10 @@ def fit_noise(y, design, get_dist, initial,
                 print param, total_value
             return total_value
 
-        return scipy.optimize.minimize(score, initial, bounds=bounds)
+        return scipy.optimize.minimize(
+            score, initial, 
+            method="L-BFGS-B",
+            bounds=bounds)
 
     vaux = tensor.ivector('aux')
     vretain = tensor.ivector('retain')
