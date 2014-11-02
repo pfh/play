@@ -34,9 +34,6 @@ try:
 except:
     pass
 
-if not have_theano:
-    warnings.warn("Couldn't import theano, calculations may be slow")
-
 
 import numpy, numpy.linalg, numpy.random
 import scipy, scipy.optimize, scipy.stats, scipy.special
@@ -346,7 +343,8 @@ class Mvt(object):
 
 
 
-class _object(object): pass
+
+
 
 def fit_noise(y, design, get_dist, initial, 
         aux=None, bounds=None, 
@@ -387,6 +385,11 @@ def fit_noise(y, design, get_dist, initial,
             .log_density(z2)
             )
     
+    
+    if use_theano and not have_theano:
+        warnings.warn("Couldn't import theano, calculations may be slow")
+        use_theano = False
+    
     # Non-theanic
     if not use_theano:
         def score(param):
@@ -398,7 +401,7 @@ def fit_noise(y, design, get_dist, initial,
                 print param, total_value
             return total_value
 
-        return scipy.optimize.fmin(score, initial)
+        return scipy.optimize.minimize(score, initial, bounds=bounds)
 
     vaux = tensor.ivector('aux')
     vretain = tensor.ivector('retain')
@@ -406,171 +409,140 @@ def fit_noise(y, design, get_dist, initial,
     vz2 = tensor.dvector('z2')
     vparam = tensor.dvector('param')
 
-    #if 0:
-    #    vvalue = score_row(vaux, vretain, vtQ2, vz2, vparam)
-    #
-    #    v_func = theano.function(
-    #        [vaux,vretain,vtQ2,vz2,vparam], 
-    #        vvalue,
-    #        on_unused_input='ignore',
-    #        allow_input_downcast=True)
-    #    
-    #    def value(param):
-    #        total_value = 0.0
-    #        for item in items:
-    #            this_value = v_func(
-    #                item.aux,item.retain,item.tQ2,item.z2,param
-    #                )
-    #            total_value += this_value
-    #        if verbose:
-    #            print param, total_value
-    #        return total_value
-    #
-    #    return scipy.optimize.minimize(
-    #        value, initial,
-    #        method = "Nelder-Mead",
-    #        #bounds=((1e-3,100.0),)*len(initial)
-    #        )
-
-    if 1:
-        vvalue = score_row(vparam, vaux, vretain, vtQ2, vz2)
-        vgradient = gradient.grad(vvalue, vparam)
-        #
-        #svalue = theano.shared(numpy.zeros(()))
-        #sgradient = theano.shared(numpy.zeros(len(initial)))
-        #
-        #vg_func = theano.function(
-        #    [vparam,vaux,vretain,vtQ2,vz2], 
-        #    #[vvalue,vgradient],
-        #    [],
-        #    updates=[
-        #        (svalue,svalue+vvalue),
-        #        (sgradient,sgradient+vgradient),
-        #        ],
-        #    on_unused_input='ignore',
-        #    allow_input_downcast=True)
-        #
-        #def value_gradient(items, param):
-        #    svalue.set_value(0.0)
-        #    sgradient.set_value(numpy.zeros(len(param)))
-        #    for item in items:
-        #        vg_func(param,*item)
-        #    if verbose:
-        #        print param, svalue.get_value()
-        #    return svalue.get_value().copy(), sgradient.get_value().copy()
-        #
-        #score = lambda param: value_gradient(items, param) 
+    vvalue = score_row(vparam, vaux, vretain, vtQ2, vz2)
+    vgradient = gradient.grad(vvalue, vparam)
     
-        import IPython.parallel
-        c = IPython.parallel.Client()
-        view = c[:]
-        
-        view.execute("import numpy, theano")
-        view.scatter('items', items)
-        
-        view['thingy'] = dict([(name,locals()[name]) for name in
-            ['initial','vaux','vretain','vtQ2',
-             'vz2','vparam','vvalue','vgradient']])
-
-        view.execute("""if 1:
-        for name in thingy:
-            locals()[name] = thingy[name]
-        
-        svalue = theano.shared(numpy.zeros(()))
-        sgradient = theano.shared(numpy.zeros(len(initial)))
-        
-        vg_func = theano.function(
-            [vparam,vaux,vretain,vtQ2,vz2], 
-            #[vvalue,vgradient],
-            [],
-            updates=[
-                (svalue,svalue+vvalue),
-                (sgradient,sgradient+vgradient),
-                ],
-            on_unused_input='ignore',
-            allow_input_downcast=True)
-            """, block=True)
-        view.execute("""def value_gradient(items, param):
-            svalue.set_value(0.0)
-            sgradient.set_value(numpy.zeros(len(param)))
-            for item in items:
-                vg_func(param.copy(),*item)
-            return svalue.get_value().copy(), sgradient.get_value().copy()
-            """)
-        view.execute("""doit = lambda: value_gradient(items,param)""")
-        
-        def score(param):
-            total_value = 0.0
-            total_gradient = numpy.zeros(len(param))
-            view['param'] = param
-            for value, gradient in view.apply_sync(lambda: doit()):
-                total_value = total_value + value
-                total_gradient += gradient
-            if verbose:
-                print param, total_value
-            return total_value, total_gradient 
-        
-        
-        return scipy.optimize.minimize(
-            score, initial,
-            method='L-BFGS-B', 
-            jac=True,
-            bounds=bounds
-            )
+    svalue = theano.shared(numpy.zeros(()))
+    sgradient = theano.shared(numpy.zeros(len(initial)))
     
-    if 1:
-        vvalue = score_row(vaux, vretain, vtQ2, vz2, vparam)
-        vgradient = gradient.grad(vvalue, vparam)
-        vhessian = gradient.hessian(vvalue, vparam)
-        
-        svalue = theano.shared(0.0)
-        sgradient = theano.shared(numpy.zeros(len(initial)))
-        shessian = theano.shared(numpy.zeros((len(initial),len(initial))))
-        
-        vgh_func = theano.function(
-            [vaux,vretain,vtQ2,vz2,vparam], 
-            [],
-            updates = [
-                (svalue,svalue+vvalue),
-                (sgradient,sgradient+vgradient),
-                (shessian,shessian+vhessian),
-                ],
-            on_unused_input='ignore',
-            allow_input_downcast=True)
-        
-        def value_gradient_hessian(param):
-            svalue.set_value(0.0)
-            sgradient.set_value(numpy.zeros(len(param)))
-            shessian.set_value(numpy.zeros((len(param),len(param))))
-            for item in items:
-                vgh_func(item.aux,item.retain,item.tQ2,item.z2,param)
-            if verbose:
-                print param, svalue.get_value()
-            return svalue.get_value().copy(), sgradient.get_value().copy(), shessian.get_value().copy()
-        
-        cache = { }
-        def get(param):
-            key = tuple(param)
-            if key not in cache:
-                cache[key] = value_gradient_hessian(key)
-            return cache[key]
-        
-        #return scipy.optimize.minimize(
-        #    lambda x: get(x)[0], initial,
-        #    method='trust-ncg', jac=lambda x: get(x)[1], hess=lambda x: get(x)[2],
-        #    bounds=((0.0,100.0),)*len(initial)
-        #    )
-
-        param = initial
-        for i in xrange(30):
-            v,g,h = value_gradient_hessian(param)
-            #print 'D', numpy.diag(h)
-            #h += numpy.identity(h.shape[0]) * 1e-6
-            #print 'D', numpy.diag(h)
-            param = param - numpy.linalg.solve(h,g)
-        return param
-
-    #return scipy.optimize.fmin(score, initial)
+    vg_func = theano.function(
+        [vparam,vaux,vretain,vtQ2,vz2], 
+        [],
+        updates=[
+            (svalue,svalue+vvalue),
+            (sgradient,sgradient+vgradient),
+            ],
+        on_unused_input='ignore',
+        allow_input_downcast=True)
+    
+    def value_gradient(items, param):
+        svalue.set_value(0.0)
+        sgradient.set_value(numpy.zeros(len(param)))
+        for item in items:
+            vg_func(param,*item)
+        if verbose:
+            print param, svalue.get_value()
+        return svalue.get_value().copy(), sgradient.get_value().copy()
+    
+    score = lambda param: value_gradient(items, param) 
+    
+    #import IPython.parallel
+    #c = IPython.parallel.Client()
+    #view = c[:]
+    #
+    #view.execute("import numpy, theano")
+    #view.scatter('items', items)
+    #
+    #view['thingy'] = dict([(name,locals()[name]) for name in
+    #    ['initial','vaux','vretain','vtQ2',
+    #     'vz2','vparam','vvalue','vgradient']])
+    #
+    #view.execute("""if 1:
+    #for name in thingy:
+    #    locals()[name] = thingy[name]
+    #
+    #svalue = theano.shared(numpy.zeros(()))
+    #sgradient = theano.shared(numpy.zeros(len(initial)))
+    #
+    #vg_func = theano.function(
+    #    [vparam,vaux,vretain,vtQ2,vz2], 
+    #    #[vvalue,vgradient],
+    #    [],
+    #    updates=[
+    #        (svalue,svalue+vvalue),
+    #        (sgradient,sgradient+vgradient),
+    #        ],
+    #    on_unused_input='ignore',
+    #    allow_input_downcast=True)
+    #    """, block=True)
+    #view.execute("""def value_gradient(items, param):
+    #    svalue.set_value(0.0)
+    #    sgradient.set_value(numpy.zeros(len(param)))
+    #    for item in items:
+    #        vg_func(param.copy(),*item)
+    #    return svalue.get_value().copy(), sgradient.get_value().copy()
+    #    """)
+    #view.execute("""doit = lambda: value_gradient(items,param)""")
+    #
+    #def score(param):
+    #    total_value = 0.0
+    #    total_gradient = numpy.zeros(len(param))
+    #    view['param'] = param
+    #    for value, gradient in view.apply_sync(lambda: doit()):
+    #        total_value = total_value + value
+    #        total_gradient += gradient
+    #    if verbose:
+    #        print param, total_value
+    #    return total_value, total_gradient 
+    
+    
+    return scipy.optimize.minimize(
+        score, initial,
+        method='L-BFGS-B', 
+        jac=True,
+        bounds=bounds
+        )
+    
+    #vvalue = score_row(vaux, vretain, vtQ2, vz2, vparam)
+    #vgradient = gradient.grad(vvalue, vparam)
+    #vhessian = gradient.hessian(vvalue, vparam)
+    #
+    #svalue = theano.shared(0.0)
+    #sgradient = theano.shared(numpy.zeros(len(initial)))
+    #shessian = theano.shared(numpy.zeros((len(initial),len(initial))))
+    #
+    #vgh_func = theano.function(
+    #    [vaux,vretain,vtQ2,vz2,vparam], 
+    #    [],
+    #    updates = [
+    #        (svalue,svalue+vvalue),
+    #        (sgradient,sgradient+vgradient),
+    #        (shessian,shessian+vhessian),
+    #        ],
+    #    on_unused_input='ignore',
+    #    allow_input_downcast=True)
+    #
+    #def value_gradient_hessian(param):
+    #    svalue.set_value(0.0)
+    #    sgradient.set_value(numpy.zeros(len(param)))
+    #    shessian.set_value(numpy.zeros((len(param),len(param))))
+    #    for item in items:
+    #        vgh_func(item.aux,item.retain,item.tQ2,item.z2,param)
+    #    if verbose:
+    #        print param, svalue.get_value()
+    #    return svalue.get_value().copy(), sgradient.get_value().copy(), shessian.get_value().copy()
+    #
+    #cache = { }
+    #def get(param):
+    #    key = tuple(param)
+    #    if key not in cache:
+    #        cache[key] = value_gradient_hessian(key)
+    #    return cache[key]
+    #
+    ##return scipy.optimize.minimize(
+    ##    lambda x: get(x)[0], initial,
+    ##    method='trust-ncg', jac=lambda x: get(x)[1], hess=lambda x: get(x)[2],
+    ##    bounds=((0.0,100.0),)*len(initial)
+    ##    )
+    #
+    #param = initial
+    #for i in xrange(30):
+    #    v,g,h = value_gradient_hessian(param)
+    #    #print 'D', numpy.diag(h)
+    #    #h += numpy.identity(h.shape[0]) * 1e-6
+    #    #print 'D', numpy.diag(h)
+    #    param = param - numpy.linalg.solve(h,g)
+    #return param
 
 
 
@@ -592,7 +564,7 @@ class Model(object):
             setattr(result,name,kwargs[name])
         return result
     
-    def fit_noise(self, data, noise_design):
+    def fit_noise(self, data, noise_design, use_theano=True,verbose=True):
         data = as_dataset(data)
         noise_design = as_matrix(noise_design)
         
@@ -611,6 +583,13 @@ class Model(object):
             get_dist=result._get_dist,
             initial=result._initial,
             bounds=result._bounds,
+            use_theano=use_theano,
+            verbose=verbose,
+            )
+        
+        return result._with(
+            optimization_result = fit,
+            param = fit.x,
             )
 
 
