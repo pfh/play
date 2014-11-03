@@ -284,7 +284,7 @@ class Mvt(object):
         offset = x - self.mean
         p = self.covar.shape[0]
         q = dot(offset, dot(inverse(self.covar), offset)) / p
-        return stats.f.sf(q, dfn=p, dfd=self.df)
+        return scipy.stats.f.sf(q, dfn=p, dfd=self.df)
 
 
     def random(self):
@@ -346,25 +346,14 @@ class Mvt(object):
 
 
 
-def fit_noise(y, design, get_dist, initial, 
-        aux=None, bounds=None, 
-        use_theano=True, verbose=True):
-    if aux is None:
-        aux = numpy.zeros((y.shape[0],0))
-
-    y = as_matrix(y)
-    aux = as_matrix(aux)
-    design = as_matrix(design)
-    initial = as_vector(initial)
-    
-    assert y.shape[1] == design.shape[0]    
-    assert aux.shape[0] == y.shape[0]
-    
-    n = y.shape[0]
-    m = y.shape[1]
+def _fit_noise(y, designs, get_dist, initial, 
+               aux, bounds, use_theano, verbose):
+    n,m = y.shape
     
     items = [ ]
+    row_tQ2_z2 = { }
     for row in xrange(n):
+        design = designs[row]
         retain = numpy.arange(m)[ 
             numpy.isfinite(y[row]) & get_dist(initial,aux[row]).good
             ]
@@ -375,6 +364,7 @@ def fit_noise(y, design, get_dist, initial,
         tQ2 = Q[:,i2].T
         z2 = dot(tQ2, y[row,retain])
         items.append( (aux[row], retain, tQ2, z2) )
+        row_tQ2_z2[row] = (tQ2, z2)
     
     
     def score_row(param, aux, retain, tQ2, z2):
@@ -404,13 +394,13 @@ def fit_noise(y, design, get_dist, initial,
         return scipy.optimize.minimize(
             score, initial, 
             method="L-BFGS-B",
-            bounds=bounds)
+            bounds=bounds), row_tQ2_z2
 
-    vaux = tensor.ivector('aux')
-    vretain = tensor.ivector('retain')
-    vtQ2 = tensor.dmatrix('tQ2')
-    vz2 = tensor.dvector('z2')
-    vparam = tensor.dvector('param')
+    vaux = tensor.ivector("aux")
+    vretain = tensor.ivector("retain")
+    vtQ2 = tensor.dmatrix("tQ2")
+    vz2 = tensor.dvector("z2")
+    vparam = tensor.dvector("param")
 
     vvalue = score_row(vparam, vaux, vretain, vtQ2, vz2)
     vgradient = gradient.grad(vvalue, vparam)
@@ -425,7 +415,7 @@ def fit_noise(y, design, get_dist, initial,
             (svalue,svalue+vvalue),
             (sgradient,sgradient+vgradient),
             ],
-        on_unused_input='ignore',
+        on_unused_input="ignore",
         allow_input_downcast=True)
     
     def value_gradient(items, param):
@@ -491,10 +481,10 @@ def fit_noise(y, design, get_dist, initial,
     
     return scipy.optimize.minimize(
         score, initial,
-        method='L-BFGS-B', 
+        method="L-BFGS-B", 
         jac=True,
         bounds=bounds
-        )
+        ), row_tQ2_z2
     
     #vvalue = score_row(vaux, vretain, vtQ2, vz2, vparam)
     #vgradient = gradient.grad(vvalue, vparam)
@@ -567,21 +557,46 @@ class Model(object):
             setattr(result,name,kwargs[name])
         return result
     
-    def fit_noise(self, data, noise_design, use_theano=True,verbose=True):
+    def __repr__(self):
+        result = '%s\n' % self.__class__.__name__
+        if hasattr(self,'param'):
+            result += self._describe_noise(self.param)
+            result += 'noise p-value = %f\n' % self.noise_combined_p_value
+        return result
+    
+    def _describe_noise(self, param):
+        return ''
+    
+    def fit_noise(self, data, 
+            noise_design=None, 
+            control_design=None, controls=None, use_theano=True,verbose=True):
         data = as_dataset(data)
         noise_design = as_matrix(noise_design)
         
+        n,m = data.y.shape
+        if noise_design is None: noise_design = numpy.ones((m,1))
+        if control_design is None: control_design = numpy.ones((m,1))
+        if controls is None: controls = [False]*n
+        
+        noise_design = as_matrix(noise_design)
+        control_design = as_matrix(control_design)
+        controls = as_vector(controls, 'bool')
+        
         result = self._with(
             data=data,
-            aux=None,
+            aux=numpy.zeros((data.y.shape[0],0)),
             noise_design=noise_design,
+            control_design=control_design,
+            controls=controls,
             )
         
         result = result._configured()
+        
+        designs = [ (noise_design if item else control_design) for item in controls ]
 
-        fit = fit_noise(
+        fit, row_tQ2_z2 = _fit_noise(
             y=result.data.y, 
-            design=result.noise_design, 
+            designs=designs, 
             aux=result._aux,
             get_dist=result._get_dist,
             initial=result._initial,
@@ -589,15 +604,44 @@ class Model(object):
             use_theano=use_theano,
             verbose=verbose,
             )
+        param = fit.x
+        
+        noise_dists = [
+            result._get_dist(param, result._aux[i])
+            for i in xrange(n)
+            ]
+        
+        noise_p_values = numpy.repeat(numpy.nan, n)
+        for row,(tQ2,z2) in row_tQ2_z2.items():
+            noise_p_values[row] = (
+                noise_dists[row]
+                .transformed(tQ2)
+                .p_value(z2)
+                )
+        
+        #Bonferroni combined p value
+        good_p = noise_p_values[numpy.isfinite(noise_p_values)]
+        if not len(good_p):
+            noise_combined_p_value = 0.0
+        else:
+            noise_combined_p_value = min(1,numpy.minimum.reduce(good_p)*len(good_p))
         
         return result._with(
             optimization_result = fit,
-            param = fit.x,
+            param = param,
+            noise_dists = noise_dists,
+            noise_p_values = noise_p_values,
+            noise_combined_p_value = noise_combined_p_value,
             )
 
 
 class Model_t_mixin(Model):
     """ This mix-in converts an Mv_normal model to an Mvt model. """
+
+    def _describe_noise(self, param):
+        result = super(Model_t_mixin,self)._describe_noise(param[1:])
+        result += 'prior df = %f\n' % param[0]
+        return result 
 
     def _get_dist(self, param, aux):
         inner_dist = super(Model_t_mixin, self)._get_dist(param[1:], aux)
@@ -647,41 +691,12 @@ model_t_standard = Model_t_standard()
 
 
 
-#A = tensor.dmatrix("A")
-#x = tensor.dvector("x")
 
-#print theano.pp(gradient.grad( dot(x,dot(A,x)), x ))
-
-#print Mvt_normal(tensor.dvector("mean"), tensor.dmatrix("covar"))
-
-#A = [[1,2],[3,4]]
-#
-#print qr_complete(A)
-#
-#
-#tA = tensor.matrix('A')
-#
-#qrtA = qr_complete(tA)
-#print theano.function([tA],qrtA)(A)
-
-
-numpy.random.seed(1)
-
-dist = Mvt([5,5,5,5],numpy.identity(4), 5.0)
-
-data = numpy.array([ dist.random() for i in xrange(10000) ])
-#print data
-
-#import pylab
-#pylab.plot(data[:,0],data[:,1],'.')
-#pylab.show()
-
-#print fit_noise(data, [[1],[1],[1],[1]], 
-#    lambda p,aux: Mvt([0,0,0,0],numpy.identity(4)*p[1:], p[0]), 
-#    [1.0, 0.5,0.5,0.5,0.5],
-#    use_theano=1)
-
-model_t_standard.fit_noise(data, [[1]]*4)
+if __name__ == "__main__":
+    numpy.random.seed(1)    
+    dist = Mvt([5,5,5,5],numpy.identity(4), 5.0)
+    data = numpy.array([ dist.random() for i in xrange(1000) ])
+    print model_t_standard.fit_noise(data, [[1]]*4)
 
 
 
