@@ -230,6 +230,7 @@ class Editor:
             self.view = gtksourceview.SourceView(self.buffer)
         self.view.set_auto_indent(True)
         self.view.modify_font(pango.FontDescription('monospace'))
+        self.view.set_wrap_mode(gtk.WRAP_WORD_CHAR)
 
         mimetype = mimetypes.guess_type(filename)[0]
         if mimetype:
