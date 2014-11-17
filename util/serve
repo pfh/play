@@ -1,4 +1,4 @@
-#!/usr/bin/env python-bio
+#!/usr/bin/env python-lab
 
 import SimpleHTTPServer
 import SocketServer, socket, threading, os, sys
@@ -43,11 +43,6 @@ with workspace.tempspace() as temp:
     t.setDaemon(True)
     t.start()
     
-    #os.system('firefox -no-remote localhost:%d%s' % (PORT, addr))
-    #os.system('chromium-browser --no-first-run '
-    #          '--window-size=1000,800 '
-    #          '--user-data-dir=%s http://localhost:%d%s' % 
-    #          (temp.working_dir, PORT, addr))
     os.system('firefox -no-remote -profile %s '
               'http://localhost:%d%s' % 
               (temp.working_dir, PORT, addr))
