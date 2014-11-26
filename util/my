@@ -2,8 +2,8 @@
 export OPENBLAS_NUM_THREADS=1
 export R_LIBS_USER=/home/pfh/R:$R_LIBS_USER
 export PYTHONPATH=\
-/home/pfh/git/nesoni:\
-/home/pfh/git/tail-tools:\
-/home/pfh/git/semiautocount:\
+$HOME/git/nesoni:\
+$HOME/git/tail-tools:\
+$HOME/git/semiautocount:\
 $PYTHONPATH 
 exec "$@"
