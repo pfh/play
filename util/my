@@ -1,6 +1,6 @@
 #!/bin/sh
 export OPENBLAS_NUM_THREADS=1
-export R_LIBS_USER=/home/pfh/R:$R_LIBS_USER
+export R_LIBS_USER=$HOME/R:$R_LIBS_USER
 export PYTHONPATH=\
 $HOME/git/nesoni:\
 $HOME/git/tail-tools:\
