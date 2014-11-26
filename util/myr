@@ -1,0 +1,3 @@
+#!/bin/sh
+
+my R CMD INSTALL ~/git/nesoni/nesoni/nesoni-r || exit 1
