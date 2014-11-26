@@ -3,9 +3,9 @@
 import argparse, sys, os, subprocess, time, socket
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-d', type=int, default=(os.getuid() % 1000 + 1), help='Display number')
-parser.add_argument("-g", default="1920x1080")
-parser.add_argument("action", nargs="?", choices=["start","stop","restart","status"], help="What to do.")
+parser.add_argument('-d', type=int, default=(os.getuid() % 1000 + 1), help='display number')
+parser.add_argument("-g", metavar="WIDTHxHEIGHT", default="1920x1080", help='screen size, default is 1920x1080')
+parser.add_argument("action", nargs="?", choices=["start","stop","restart","status"], help="what to do.")
 args = parser.parse_args()
 
 if not args.action:
