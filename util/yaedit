@@ -638,7 +638,7 @@ class Yaedit:
         #self.notebook.append_page(toolbox, label)
         
         self.window = gtk.Window()
-        self.window.resize(900,700)
+        self.window.resize(1000,1000)
         self.window.set_title('yaedit')
         self.window.add(self.notebook)
         
