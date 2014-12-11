@@ -42,10 +42,10 @@ def get_pid(port):
 def kill_port(port):
     pid = get_pid(port)
     print "Killing", pid
-    os.kill(pid)
+    os.kill(pid, 2)
     while pid:
         time.sleep(0.1)
-        pid = get_port(pid)
+        pid = get_pid(port)
         
 
 #def running():
@@ -62,12 +62,13 @@ if action in ("stop","restart"):
         print "VNC server not running, nothing to kill"
     else:
         kill_port(5900+n)
+        pid = None
 
     if wspid is None:
         print "websockify not running, nothing to kill"
     else:
-        print "Killing %d" % wspid
         kill_port(6100+n)
+        wspid = None
 
 
 if action in ("start","restart"):
