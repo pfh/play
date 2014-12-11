@@ -3,16 +3,18 @@
 import argparse, sys, os, subprocess, time, socket
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-d', type=int, default=(os.getuid() % 1000 + 1), help='display number')
-parser.add_argument("-g", metavar="WIDTHxHEIGHT", default="1000x600", help='screen size, default is 1000x600')
+parser.add_argument('-display', type=int, default=(os.getuid() % 1000 + 1), help='display number')
+parser.add_argument("-geometry", metavar="WIDTHxHEIGHT", default="1000x700", help='screen size, default is 1000x600')
+parser.add_argument("-dpi", type=int, metavar="DPI", default=90, help='DPI (text size), default 90')
 parser.add_argument("action", nargs="?", choices=["start","stop","restart","status"], help="what to do.")
 args = parser.parse_args()
 
 if not args.action:
     parser.print_help()
 
-n = args.d
-geometry = args.g
+n = args.display
+geometry = args.geometry
+dpi = args.dpi
 action = args.action
 
 os.environ['DISPLAY'] = ':%d' % n
@@ -75,9 +77,8 @@ if action in ("start","restart"):
     if pid is not None:
         print "Already running"
     else:
-        background('Xtightvnc :%d -localhost -desktop X -depth 24 -dpi 120'
-                   #' -rfbauth ~/.vnc/passwd'
-                   ' -geometry %s' % (n, geometry))
+        background('Xtightvnc :%d -localhost -desktop X -depth 24 -dpi %d'
+                   ' -geometry %s' % (n, dpi, geometry))
         
         print >> sys.stderr, 'Wait for server to start'
         while True:
