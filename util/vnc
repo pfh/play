@@ -1,0 +1,116 @@
+#!/usr/bin/env python
+
+import argparse, sys, os, subprocess, time, socket
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-display', type=int, default=(os.getuid() % 1000 + 1), help='display number')
+parser.add_argument("-geometry", metavar="WIDTHxHEIGHT", default="1000x700", help='screen size, default is 1000x600')
+parser.add_argument("-dpi", type=int, metavar="DPI", default=90, help='DPI (text size), default 90')
+parser.add_argument("action", nargs="?", choices=["start","stop","restart","status"], help="what to do.")
+args = parser.parse_args()
+
+if not args.action:
+    parser.print_help()
+
+n = args.display
+geometry = args.geometry
+dpi = args.dpi
+action = args.action
+
+os.environ['DISPLAY'] = ':%d' % n
+
+print
+print "DISPLAY=:%d" % n
+print
+
+
+def background(command):
+    os.system('nohup ' + command + ' >/dev/null 2>/dev/null &')
+
+def get_pid(port):
+    proc = subprocess.Popen(["netstat","-tnlp"],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    pid = None
+    for line in proc.communicate()[0].split('\n'):
+        if not line.startswith('tcp'): continue
+        parts = line.split()
+        if not parts[3].endswith(":%d" % port): continue
+        assert pid is None
+        if "/" not in parts[6]: continue
+        pid, program = parts[6].split("/")
+        #assert program == "Xtightvnc"
+        pid = int(pid)
+    return pid
+
+def kill_port(port):
+    pid = get_pid(port)
+    print "Killing", pid
+    os.kill(pid, 2)
+    while pid:
+        time.sleep(0.1)
+        pid = get_pid(port)
+        
+
+#def running():
+#    return os.system('xset q >/dev/null 2>/dev/null') == 0
+
+#if not running():
+
+pid = get_pid(5900+n)
+
+wspid = get_pid(6100+n)
+
+if action in ("stop","restart"):
+    if pid is None:
+        print "VNC server not running, nothing to kill"
+    else:
+        kill_port(5900+n)
+        pid = None
+
+    if wspid is None:
+        print "websockify not running, nothing to kill"
+    else:
+        kill_port(6100+n)
+        wspid = None
+
+
+if action in ("start","restart"):
+    if pid is not None:
+        print "Already running"
+    else:
+        background('Xtightvnc :%d -localhost -desktop X -depth 24 -dpi %d'
+                   ' -geometry %s' % (n, dpi, geometry))
+        
+        print >> sys.stderr, 'Wait for server to start'
+        while True:
+           pid = get_pid(5900+n)
+           if pid is not None: break
+           time.sleep(0.1)
+        
+        background("startlxde")
+
+if pid is not None and wspid is None:
+    print "Starting websockify"
+    background("websockify localhost:%d localhost:%d" %
+               (6100+n, 5900+n))
+
+
+if pid is None:
+    print "VNC server is not running"
+else:
+    print "VNC server is running"
+
+    me = socket.gethostbyaddr(socket.gethostname())[0]
+    
+    print
+    print "Port %d, local connections only, so connect via ssh tunnel, eg:" % (5900+n)
+    print
+    print "xtightvncviewer -via %s :%d" % (me, n)
+    print
+    print "or:"
+    print "ssh -L localhost:%d:localhost:%d %s" % (6100+n, 6100+n, me)
+    print "go to novnc.com, log in with localhost, port %d" % (6100+n)
+    print
+    
+
+
+

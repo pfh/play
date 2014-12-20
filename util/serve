@@ -1,0 +1,50 @@
+#!/usr/bin/env python-lab
+
+import SimpleHTTPServer
+import SocketServer, socket, threading, os, sys
+
+from nesoni import workspace
+
+with workspace.tempspace() as temp:
+    addr = ''
+    
+    if len(sys.argv) > 1:
+       [ d ] = sys.argv[1:]
+       
+       if not os.path.isdir(d):
+          if d[-4:].lower() == '.zip':
+              assert 0 == os.system('mkdir '+temp/'unzip')
+              assert 0 == os.system('unzip '+d+' -d '+temp/'unzip')
+              d = temp/'unzip'
+          else:
+              d, filename = os.path.split(d)
+              addr = '/'+filename
+       
+       if d:
+          os.chdir(d)
+    
+    
+    PORT = 8000
+    
+    while True:
+        Handler = SimpleHTTPServer.SimpleHTTPRequestHandler
+    
+        try:    
+            httpd = SocketServer.TCPServer(("127.0.0.1", PORT), Handler)
+        except socket.error, e:
+            if e.errno != 98: raise
+            PORT += 1
+            continue
+        break
+        
+    print "serving at port", PORT
+    
+    t = threading.Thread(target=httpd.serve_forever)
+    t.setDaemon(True)
+    t.start()
+    
+    os.system('firefox -no-remote -profile %s '
+              'http://localhost:%d%s' % 
+              (temp.working_dir, PORT, addr))
+
+
