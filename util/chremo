@@ -20,9 +20,13 @@ try:
         time.sleep(0.1)
     
     if sproc.poll() == None:    
-        chrom = subprocess.Popen(['chromium-browser','--proxy-server=socks5://localhost:'+port])
+        chrom = subprocess.Popen([
+            'chromium-browser',
+            '--proxy-server=socks5://localhost:'+port
+            ])
         chrom.wait()    
         sproc.kill()
+
 finally:
     os.system('reset')
 
