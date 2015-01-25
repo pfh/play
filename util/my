@@ -5,5 +5,6 @@ export PYTHONPATH=\
 $HOME/git/nesoni:\
 $HOME/git/tail-tools:\
 $HOME/git/semiautocount:\
+$HOME/git/fitnoise:\
 $PYTHONPATH 
 exec "$@"
