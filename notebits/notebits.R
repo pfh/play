@@ -3,7 +3,7 @@ library(fitnoise) #Python interop
 library(ggplot2)
 library(vcd)
 
-theme <- theme_minimal()
+theme <- theme_bw()
 
 heading <- function(...) {
     pyset_scalar("what", paste(..., sep="",collapse=""))
@@ -20,14 +20,15 @@ say.print <- function(item) {
     pyexec("print what")
 }
 
-give.table <- function(filename, frame) {
+give.table <- function(filename, frame, comment="") {
     write.csv(frame, sprintf("%s.csv",filename))
-    pyexec(sprintf("links('%s.csv')", filename))
+    pyset_scalar("what", sprintf("<p><a href=\"%s.csv\">%s.csv</a> %s", filename, filename, comment))
+    pyexec("display(HTML(what))")
 }
 
-show.plot <- function(filename, item, width=6,height=5) {
+show.plot <- function(filename, item, width=5,height=5) {
     png(sprintf("%s.png",filename), width=width,height=height,units="in",res=60)
-    item()
+    value <- item()
     dev.off()
     pyexec(sprintf("display(Image('%s.png'))", filename)) 
     
@@ -35,6 +36,8 @@ show.plot <- function(filename, item, width=6,height=5) {
     item()
     dev.off()
     pyexec(sprintf('display(HTML("<p><a download href=\\"%s.eps\\">%s.eps</a>"))', filename,filename))
+
+    value
 }
 
 show.ggplot <- function(filename, item) {
