@@ -12,9 +12,10 @@ look at each other's screens.
 
 You need to install:
 
-  Xtightvnc  - VNC server
-  lxde       - Lightweight environment to run
-  websockify - for noVNC client support
+  tightvncserver - Xtightvnc  - VNC server
+  lxde           - startlxde  - Lightweight environment to run
+  net-tools      - netstat    - To check for when Xtightvnc opens its socket
+  websockify     - websockify - For noVNC client support
 
 """
 
