@@ -27,10 +27,10 @@ give.table <- function(filename, frame, comment="") {
 }
 
 show.plot <- function(filename, item, width=5,height=5) {
-    png(sprintf("%s.png",filename), width=width,height=height,units="in",res=60)
+    png(sprintf("%s.png",filename), width=width,height=height,units="in",res=120)
     value <- item()
     dev.off()
-    pyexec(sprintf("display(Image('%s.png'))", filename)) 
+    pyexec(sprintf("display(Image('%s.png', retina=True))", filename)) 
     
     postscript(sprintf("%s.eps",filename), width=width,height=height)
     item()
@@ -40,8 +40,8 @@ show.plot <- function(filename, item, width=5,height=5) {
     value
 }
 
-show.ggplot <- function(filename, item) {
-    show.plot(filename, function() print(item))
+show.ggplot <- function(filename, item, ...) {
+    show.plot(filename, function() print(item), ...)
 }
 
 

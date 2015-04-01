@@ -50,10 +50,6 @@ def kill_port(port):
         pid = get_pid(port)
         
 
-#def running():
-#    return os.system('xset q >/dev/null 2>/dev/null') == 0
-
-#if not running():
 
 pid = get_pid(5900+n)
 
