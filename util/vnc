@@ -1,4 +1,23 @@
 #!/usr/bin/env python
+"""
+
+pfh's vnc script
+
+Security is by SSH.
+
+Supports several users using server, i.e. more than one but not lots.
+
+Known issue: If your server has multiple users, they will be able to 
+look at each other's screens.
+
+You need to install:
+
+  Xtightvnc  - VNC server
+  lxde       - Lightweight environment to run
+  websockify - for noVNC client support
+
+"""
+
 
 import argparse, sys, os, subprocess, time, socket
 
