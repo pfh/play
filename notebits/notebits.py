@@ -24,3 +24,4 @@ path = os.path.dirname(os.path.abspath(filename))
 
 robjects.r['source']( os.path.join(path,"notebits.R") )
 
+print "Loaded utility functions from https://github.com/pfh/play/tree/master/notebits"

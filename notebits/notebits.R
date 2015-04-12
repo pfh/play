@@ -26,7 +26,7 @@ give.table <- function(filename, frame, comment="") {
     pyexec("display(HTML(what))")
 }
 
-show.plot <- function(filename, item, width=5,height=5) {
+show.plot <- function(filename, item, width=6.5,height=5) {
     png(sprintf("%s.png",filename), width=width,height=height,units="in",res=120)
     value <- item()
     dev.off()
@@ -37,7 +37,7 @@ show.plot <- function(filename, item, width=5,height=5) {
     dev.off()
     pyexec(sprintf('display(HTML("<p><a download href=\\"%s.eps\\">%s.eps</a>"))', filename,filename))
 
-    value
+    invisible(value)
 }
 
 show.ggplot <- function(filename, item, ...) {
