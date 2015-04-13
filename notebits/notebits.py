@@ -1,7 +1,6 @@
 """
 
 %load_ext rmagic
-
 execfile("/data/home/pfh/git/play/notebits/notebits.py")
 
 """
