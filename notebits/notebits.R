@@ -5,9 +5,19 @@ library(vcd)
 
 theme <- theme_bw()
 
+say.html <- function(...) {
+    pyset_scalar("what", paste(..., sep="",collapse=""))
+    pyexec("display(HTML(what))")
+}
+
 heading <- function(...) {
     pyset_scalar("what", paste(..., sep="",collapse=""))
     pyexec("display(HTML('<h2>'+what+'</h2>'))")
+}
+
+subheading <- function(...) {
+    pyset_scalar("what", paste(..., sep="",collapse=""))
+    pyexec("display(HTML('<h3>'+what+'</h3>'))")
 }
 
 say <- function(...) {
@@ -22,8 +32,14 @@ say.print <- function(item) {
 
 give.table <- function(filename, frame, comment="") {
     write.csv(frame, sprintf("%s.csv",filename))
-    pyset_scalar("what", sprintf("<p><a href=\"%s.csv\">%s.csv</a> %s", filename, filename, comment))
+    pyset_scalar("what", sprintf("<p><a href=\"%s.csv\">%s.csv</a> (%d items) %s", 
+        filename, filename, nrow(frame), comment))
     pyexec("display(HTML(what))")
+}
+
+show.source <- function(filename) {
+    say.html("<p>Loading from <a href=\"",filename,"\">",filename,"</a>")
+    source(filename)
 }
 
 show.plot <- function(filename, item, width=6.5,height=5) {
