@@ -188,31 +188,34 @@ def get_prefix(lines):
 
 class Tip:
     def __init__(self): 
-        self.window = gtk.Window()
-        self.window.set_decorated(False)
-        self.window.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_MENU)
-        self.window.set_property('accept-focus', False)
-        self.label = gtk.Label('hello')
-        self.label.show()
-        self.window.add(self.label)
-        
-        self.window.add_events(gtk.gdk.ENTER_NOTIFY)
-        self.window.connect('enter-notify-event', lambda *etc: self.window.hide())
+        pass
+        #self.window = gtk.Window()
+        #self.window.set_decorated(False)
+        #self.window.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_MENU)
+        #self.window.set_property('accept-focus', False)
+        #self.label = gtk.Label('hello')
+        #self.label.show()
+        #self.window.add(self.label)
+        #
+        #self.window.add_events(gtk.gdk.ENTER_NOTIFY)
+        #self.window.connect('enter-notify-event', lambda *etc: self.window.hide())
      
     def show(self, tip):
-        self.label.set_text(tip)
-        x,y = self.window.get_display().get_pointer()[1:3]
-        width, height = self.window.get_size()
-        self.window.move(x-width//2,y-height-10)
-        self.window.show()
-        
-        gobject.timeout_add(TIP_TIMEOUT, lambda *etc: self.window.hide())
+        pass
+        #self.label.set_text(tip)
+        #x,y = self.window.get_display().get_pointer()[1:3]
+        #width, height = self.window.get_size()
+        #self.window.move(x-width//2,y-height-10)
+        #self.window.show()
+        #
+        #gobject.timeout_add(TIP_TIMEOUT, lambda *etc: self.window.hide())
        
     def add_click_tip(self, widget, tip):
-        def on_press(widget, event):
-            if widget.is_focus() or event.button != 1: return
-            self.show(tip)
-        widget.connect('button-press-event', on_press)
+        pass
+        #def on_press(widget, event):
+        #    if widget.is_focus() or event.button != 1: return
+        #    self.show(tip)
+        #widget.connect('button-press-event', on_press)
 
 class Editor:
     def __init__(self, filename):

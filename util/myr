@@ -4,3 +4,5 @@ set -euo pipefail
 
 my R CMD INSTALL ~/git/nesoni/nesoni/nesoni-r
 my R CMD INSTALL ~/git/fitnoise/fitnoise
+my R CMD INSTALL ~/git/varistran
+

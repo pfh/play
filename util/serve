@@ -47,4 +47,7 @@ with workspace.tempspace() as temp:
               'http://localhost:%d%s' % 
               (temp.working_dir, PORT, addr))
 
+    #os.system('firefox -new-window '
+    #          'http://localhost:%d%s' % 
+    #          (PORT, addr))
 
