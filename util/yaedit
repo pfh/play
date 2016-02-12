@@ -141,7 +141,10 @@ def make_file_completion(callback):
             entry.set_text(filename)
             entry.select_region(0,-1)
         else:
-            entry.set_text('')
+            #entry.set_text('')
+            dir = os.path.dirname(filename)
+            if dir: dir += os.path.sep
+            entry.set_text(dir)
             callback(filename)
     
     def freshen_list():

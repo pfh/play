@@ -1,0 +1,44 @@
+#!/usr/bin/env python
+"""
+
+Read all processes back into RAM, in Linux.
+
+Must be run as root.
+
+"""
+
+
+import re, sys, os
+
+def read_proc_mem(pid):
+    try:
+        with open("/proc/" + pid + "/mem", 'rb', 0) as mem_file,\
+             open("/proc/" + pid + "/maps", 'rb') as maps_file:
+            for line in maps_file:
+                parts = line.strip().split()
+                parts0 = parts[0].split("-")
+                start = int(parts0[0],16)
+                end = int(parts0[1],16)
+                
+                if parts[1][:1] != 'r': continue
+                what = parts[5] if len(parts) > 5 else ''
+                if what == '[vsyscall]': continue
+                if what[:1] == '/': continue
+                print pid, what, (end-start)//(1<<20),"M"
+                
+                mem_file.seek(start)                
+                n = end-start
+                while n > 0:
+                    chunk = min(n, 1<<20)
+                    mem_file.read(chunk)
+                    n -= chunk
+                    
+    except IOError, e:
+        print "Goofed on", pid
+        print e
+
+if __name__ == "__main__":
+    for filename in os.listdir("/proc"):
+        if not filename.isdigit(): continue
+        read_proc_mem(filename)
+
