@@ -238,9 +238,18 @@ class Editor:
         self.view.modify_font(pango.FontDescription('monospace'))
         self.view.set_wrap_mode(gtk.WRAP_WORD_CHAR)
 
-        mimetype = mimetypes.guess_type(filename)[0]
-        if mimetype:
-            self.buffer.set_language(get_language_from_mime_type(mimetype))
+        #mimetype = mimetypes.guess_type(filename)[0]
+        #if mimetype:
+        #    self.buffer.set_language(get_language_from_mime_type(mimetype))
+        language = None
+        if filename.endswith(".R") or filename.endswith(".Rmd"):
+            language = "r"
+        elif filename.endswith(".py"):
+            language = "python"
+        elif filename.endswith(".html"):
+            language = "html"
+        if language is not None:
+            self.buffer.set_language(MANAGER.get_language(language))
         
         if not os.path.exists(filename):
             open(filename, 'wb').close()
