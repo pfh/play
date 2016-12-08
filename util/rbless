@@ -1,0 +1,25 @@
+#!/usr/bin/python
+
+import sys, os
+dirname = os.path.abspath(sys.argv[1])
+
+filename = os.path.join(dirname,os.path.basename(dirname)+".Rproj")
+print filename
+
+assert not os.path.exists(filename), "Already blessed"
+
+with open(filename, "wt") as f:
+    print >> f, """\
+Version: 1.0
+
+RestoreWorkspace: Default
+SaveWorkspace: Default
+AlwaysSaveHistory: Default
+
+EnableCodeIndexing: Yes
+UseSpacesForTab: Yes
+NumSpacesForTab: 4
+Encoding: UTF-8
+
+RnwWeave: Sweave
+LaTeX: pdfLaTeX"""
