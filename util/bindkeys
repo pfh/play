@@ -1,0 +1,32 @@
+#!/usr/bin/env python
+
+import gtk, keybinder, os, subprocess
+
+def get_windows():
+    text = subprocess.Popen(['wmctrl','-l'],stdout=subprocess.PIPE).communicate()[0]
+    result = [ ]
+    for line in text.strip('\n').split('\n'):
+        parts = line.split(None, 3)
+        result.append(parts)
+    return result
+
+kp = [
+    'KP_End',
+    'KP_Down',
+    'KP_Page_Down',
+    'KP_Left',
+    'KP_Begin',
+    'KP_Right',
+    'KP_Home',
+    'KP_Up',
+    'KP_Page_Up',
+    ]
+
+def local(n):
+    print 'Local', n
+    os.system('wmctrl -s %d' % (n-1))
+
+for i in xrange(1,9+1):
+    keybinder.bind("<Ctrl>"+str(i), local, i)
+
+gtk.main()

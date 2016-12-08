@@ -1,0 +1,82 @@
+#!/usr/bin/env python
+
+import sys, subprocess, csv
+
+def run(args, stdin=None, stdout=None):
+    return subprocess.Popen(
+        args,
+        stdin=stdin,
+        stdout=stdout,
+        close_fds=True,
+    )
+
+n = 15
+
+p = run(['less','-S'], stdin=subprocess.PIPE)
+
+def show(parts):
+    lines = [ [' '*n]*len(parts) ]
+    for i, part in enumerate(parts):
+        part_lines = [ ]
+        while part:
+            split = n-1
+            if len(part) > split:
+                for j in xrange(1,min(n,len(part))):
+                    if part[j] in ' -_':
+                        split = j
+            part_lines.append(part[:split])
+            part = part[split:]
+        while len(lines) < len(part_lines):
+            lines.append([' '*n]*len(parts))
+        for j, line in enumerate(part_lines):
+            lines[j][i] = line + ' '*(n-len(line))
+    for line in lines[:5]:
+        p.stdin.write(''.join(line)+'\n')
+    p.stdin.flush()
+
+try:
+    try:
+        if len(sys.argv) > 1:
+            files = (open(item, 'rU') for item in sys.argv[1:])
+        else:
+            files = [ sys.stdin ]
+
+        dialect = None
+        
+        for file in files:
+            for line in file:
+                #parts = line.rstrip().split('\t')
+                if line.startswith('#') or not line.strip():
+                    p.stdin.write(line)
+                    p.stdin.flush()
+                    continue
+                
+                if dialect is None:
+                    try:
+                        dialect = csv.Sniffer().sniff(line)
+                    except csv.Error:
+                        dialect = csv.get_dialect('excel-tab')
+                
+                parts = csv.reader([line], dialect).next()
+                
+                for i in xrange(len(parts)):
+                    try:
+                        parts[i] = '% d' % int(parts[i])
+                    except ValueError:
+                        try:
+                            parts[i] = '%# .3g' % float(parts[i])
+                        except ValueError:
+                            pass                         
+                    #if i < len(parts)-1 and len(parts[i]) > n:
+                    #    parts[i] = parts[i][:n]+'>'
+                    #else:
+                    #    parts[i] += ' '*(n+1-len(parts[i]))
+                #p.stdin.write(''.join(parts) + '\n')
+                #p.stdin.flush()
+                show(parts)
+    except IOError:
+        pass
+finally:
+    p.stdin.close()
+
+sys.exit( p.wait() )
