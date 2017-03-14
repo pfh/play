@@ -6,10 +6,11 @@ dirname = os.path.abspath(sys.argv[1])
 filename = os.path.join(dirname,os.path.basename(dirname)+".Rproj")
 print filename
 
-assert not os.path.exists(filename), "Already blessed"
-
-with open(filename, "wt") as f:
-    print >> f, """\
+if os.path.exists(filename):
+    print "Already blessed"
+else:
+    with open(filename, "wt") as f:
+        print >> f, """\
 Version: 1.0
 
 RestoreWorkspace: Default
@@ -23,3 +24,17 @@ Encoding: UTF-8
 
 RnwWeave: Sweave
 LaTeX: pdfLaTeX"""
+
+
+
+filename = os.path.join(dirname,os.path.basename(dirname)+".sublime-project")
+print filename
+if os.path.exists(filename):
+    print "Already a sublime project"
+else:
+    with open(filename, "wt") as f:
+        print >> f, """\
+{
+    "folders" : [ { "path" : "." } ]
+}"""
+
