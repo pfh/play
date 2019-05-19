@@ -20,24 +20,24 @@ def read_proc_mem(pid):
                 start = int(parts0[0],16)
                 end = int(parts0[1],16)
                 
-                if parts[1][:1] != 'r': continue
+                #if parts[1][:1] != 'r': continue
                 what = parts[5] if len(parts) > 5 else ''
                 if what == '[vsyscall]': continue
-                if what[:1] == '/': continue
-                print pid, what, (end-start)//(1<<20),"M"
+                #if what[:1] == '/data': continue
+                print pid, parts[1], what, (end-start)//(1<<20),"M"
 
-                if end-start > (1<<27):
-                    print "skip"
-                    continue
+                #if end-start > (1<<27):
+                #    print "skip"
+                #    continue
                 
                 mem_file.seek(start)                
                 n = end-start
                 while n > 0:
-                    chunk = min(n, 1<<8)
-                    mem_file.read(chunk)
+                    chunk = min(n, 1<<25)
+                    mem_file.read(chunk).count('x')
                     n -= chunk
 
-                time.sleep(1)
+                #time.sleep(0.01)
                     
     except IOError, e:
         print "Goofed on", pid
@@ -45,7 +45,7 @@ def read_proc_mem(pid):
 
 if __name__ == "__main__":
     while True:
-        for filename in os.listdir("/proc"):
+        for filename in os.listdir("/proc")[::-1]:
             if not filename.isdigit(): continue
             read_proc_mem(filename)
         

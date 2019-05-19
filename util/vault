@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+
+import sys,os
+from shlex import quote
+
+homes = "/data/home/"
+
+vaults = "/mnt/vicnode/vault/archived/"
+
+def shell(command):
+    print("Running: "+command)
+    assert 0 == os.system(command)
+
+
+def push(source):
+    source = os.path.abspath(source)
+    assert source.startswith(homes), source+" not in "+homes
+    assert os.path.exists(source), source+" does not exist"
+    assert not os.path.islink(source), source+" is a symbolic link"
+    
+    dest = vaults+source[len(homes):]
+    assert not os.path.exists(dest), dest + " exists"
+    
+    dest_dir = os.path.dirname(dest)
+    print("Creating: "+dest_dir)
+    os.makedirs(dest_dir, exist_ok=True)
+    shell("mv "+quote(source)+" "+quote(dest))
+    shell("ln -s "+quote(dest)+" "+quote(source))
+
+
+def pull(source):
+    source = os.path.abspath(source)
+    assert os.path.exists(source), source+" does not exist"
+    assert os.path.islink(source), source+" is not a symbolic link"
+    
+    aside = source+"__link"
+    assert not os.path.exists(aside)
+    
+    archive = os.readlink(source)
+    shell("mv "+quote(source)+" "+quote(aside))
+    shell("mv "+quote(archive)+" "+quote(source))
+    shell("rm "+quote(aside))
+
+
+if __name__ == "__main__":
+   command = sys.argv[1:]
+   print(command)
+   
+   if command[0] == "push":
+      [ source ] = command[1:]
+      push(source)
+   elif command[0] == "pull":
+      [ source ] = command[1:]
+      pull(source)
+   else:
+      print("Unknown command: "+command[0])
