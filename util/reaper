@@ -1,0 +1,26 @@
+#!/usr/bin/env python3
+
+import subprocess, time
+
+def get():
+    result = subprocess.check_output(['ps','-e','-o','pid,state,user,command']).decode("utf-8")
+    result = result.strip().split("\n")
+    result = [ item.split(None,2) for item in result ] 
+    result = [ item for item in result if item[1] == "D" ]
+    return result
+
+candidates = get()
+for i in range(100):
+    print(candidates)
+    newset = set( item[0] for item in get() )
+    candidates = [ item for item in candidates if item[0] in newset ]
+    time.sleep(0.01)
+
+for item in candidates:
+    print(item[0], item[1], item[2])
+
+if candidates:
+    print()
+    print("sudo kill -9 "+",".join(item[0] for item in candidates))
+
+

@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 
-import sys,os
+# To push changes to server:
+# sudo cp vault /data/software/bin
+
+
+import sys,os,pwd
 from shlex import quote
 
 homes = "/data/home/"
@@ -10,6 +14,9 @@ vaults = "/mnt/vicnode/vault/archived/"
 def shell(command):
     print("Running: "+command)
     assert 0 == os.system(command)
+
+def get_owner(filename):
+    return pwd.getpwuid(os.stat(filename).st_uid).pw_name
 
 
 def push(source):
@@ -37,20 +44,47 @@ def pull(source):
     assert not os.path.exists(aside)
     
     archive = os.readlink(source)
+    assert archive.startswith(vaults), archive+" not in "+vaults
+    
     shell("mv "+quote(source)+" "+quote(aside))
     shell("mv "+quote(archive)+" "+quote(source))
     shell("rm "+quote(aside))
 
+def awaken(path):
+    shell("find -L "+quote(path)+" -type f |xargs -n 1 -P 20 --verbose head -c 1 >/dev/null")
+
+def ensure_users_exist():
+    for username in os.listdir(homes):
+        owner = get_owner(homes+username)
+        assert username == owner
+        archive = vaults+username
+        if os.path.exists(archive): continue
+        shell("mkdir "+quote(archive))
+        shell("chown "+quote(username)+":"+quote(username)+" "+archive)
+    
 
 if __name__ == "__main__":
    command = sys.argv[1:]
-   print(command)
-   
-   if command[0] == "push":
-      [ source ] = command[1:]
-      push(source)
+
+   if not command:   
+      print("Usage:")
+      print()
+      print("    vault push [directories or files]     -- shift to vault and symlink")
+      print("    vault pull [symlinks]                 -- move back from vault")
+      print("    vault awaken [symlink/directory/file] -- in parallel read first byte of each file")
+      print()
+      print("Files are moved to/from a parallel directory structure in")
+      print("  "+vaults+"[your username]")
+   elif command[0] == "ensure-users-exist":
+      ensure_users_exist()
+   elif command[0] == "push":
+      for source in command[1:]:
+          push(source)
    elif command[0] == "pull":
-      [ source ] = command[1:]
-      pull(source)
+      for source in command[1:]:
+          pull(source)
+   elif command[0] == "awaken":
+      for source in command[1:]:
+          awaken(source)
    else:
       print("Unknown command: "+command[0])
