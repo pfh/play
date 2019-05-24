@@ -727,12 +727,20 @@ class Yaedit:
             if bounds:
                 text = buffer.get_text(*bounds)
             else:
-                line = buffer.get_iter_at_mark(buffer.get_insert()).get_line()
-                iter1 = buffer.get_iter_at_line(line)
-                iter2 = buffer.get_iter_at_line(line)
-                iter2.forward_line()
-                text = buffer.get_text(iter1,iter2).rstrip("\n")
-                buffer.place_cursor(iter2)
+                # Skip down to first non-blank line
+                while True:
+                    line = buffer.get_iter_at_mark(buffer.get_insert()).get_line()
+                    iter1 = buffer.get_iter_at_line(line)
+                    iter2 = buffer.get_iter_at_line(line)
+                    iter2.forward_line()
+                    at_end = line == iter2.get_line()
+                    text = buffer.get_text(iter1,iter2).rstrip()
+                    buffer.place_cursor(iter2)
+                    if at_end or text: break
+
+                # Insert newline if on final line                    
+                if at_end and text:
+                    buffer.insert(iter2, "\n")
                 
             if not text: return True
             bracket_a = "\x1b[200~"
