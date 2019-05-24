@@ -61,7 +61,7 @@ except:
     SV2 = False
 
 import os, sys, gtk, gobject, pango, \
-       mimetypes, re, glob, weakref
+       mimetypes, re, glob, weakref, fcntl, termios
 
 TIP_TIMEOUT = 400
 
@@ -716,6 +716,33 @@ class Yaedit:
         self.accel_group.connect_group(ord('P'), gtk.gdk.CONTROL_MASK, 0, 
             prefix_focuser)
         self.tip.add_click_tip(self.prefix_entry, 'Ctrl-P')
+        
+        
+        def send_to_terminal(*etc):
+            editor = self.active_editor()
+            if not editor: return True
+            
+            buffer = editor.get_buffer()
+            bounds = buffer.get_selection_bounds()
+            if bounds:
+                text = buffer.get_text(*bounds)
+            else:
+                line = buffer.get_iter_at_mark(buffer.get_insert()).get_line()
+                iter1 = buffer.get_iter_at_line(line)
+                iter2 = buffer.get_iter_at_line(line)
+                iter2.forward_line()
+                text = buffer.get_text(iter1,iter2).rstrip("\n")
+                buffer.place_cursor(iter2)
+                
+            if not text: return True
+            bracket_a = "\x1b[200~"
+            bracket_b = "\x1b[201~"
+            for char in bracket_a+text+bracket_b+"\n":
+                fcntl.ioctl(0, termios.TIOCSTI, char)
+            return True
+
+        self.accel_group.connect_group(gtk.keysyms.Return, gtk.gdk.CONTROL_MASK, 0,
+            send_to_terminal)
         
         self.window.show_all()
         self.find_hbox.hide()
