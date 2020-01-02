@@ -1,0 +1,17 @@
+#!/usr/bin/python3
+
+import sys, os, json
+
+def walk(path):
+    if os.path.islink(path):
+        yield path
+        return
+    if not os.path.isdir(path):
+        return
+    for filename in os.listdir(path):
+        yield from walk(os.path.join(path, filename))
+
+for query in sys.argv[1:]:
+    for filename in walk(query):
+        print(json.dumps([os.path.realpath(filename),filename]))
+

@@ -1,0 +1,19 @@
+#!/usr/bin/python3
+
+import sys, os, json
+
+query = os.path.realpath(sys.argv[2])
+print("Finding", query)
+
+def isin(query, loc):
+    while True:
+        if query == loc: return True
+        loc = os.path.dirname(loc)
+        if loc in ("","/"): return False
+
+with open(sys.argv[1],"r") as f:
+    for line in f:
+        a,b = json.loads(line)
+        
+        if isin(query, a) and not isin(query,b):
+            print(b,"->",a)

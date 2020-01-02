@@ -743,8 +743,8 @@ class Yaedit:
                     buffer.insert(iter2, "\n")
                 
             if not text: return True
-            bracket_a = "\x1b[200~"
-            bracket_b = "\x1b[201~"
+            bracket_a = "" #"\x1b[200~"
+            bracket_b = "" #"\x1b[201~"
             for char in bracket_a+text+bracket_b+"\n":
                 fcntl.ioctl(0, termios.TIOCSTI, char)
             return True
