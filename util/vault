@@ -27,10 +27,13 @@ def push(source):
     
     dest = vaults+source[len(homes):]
     assert not os.path.exists(dest), dest + " exists"
+
+    user = os.environ["USER"]
     
     dest_dir = os.path.dirname(dest)
     print("Creating: "+dest_dir)
     os.makedirs(dest_dir, exist_ok=True)
+    shell("chown -R "+user+":"+user+" "+quote(source))
     shell("mv "+quote(source)+" "+quote(dest))
     shell("ln -s "+quote(dest)+" "+quote(source))
 
@@ -50,8 +53,10 @@ def pull(source):
     shell("mv "+quote(archive)+" "+quote(source))
     shell("rm "+quote(aside))
 
+
 def awaken(path):
     shell("find -L "+quote(path)+" -type f |xargs -n 1 -P 20 --verbose head -c 1 >/dev/null")
+
 
 def ensure_users_exist():
     for username in os.listdir(homes):

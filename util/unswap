@@ -45,7 +45,7 @@ def read_proc_mem(pid):
 
 if __name__ == "__main__":
     while True:
-        for filename in os.listdir("/proc")[::-1]:
+        for filename in (sys.argv[1:] or os.listdir("/proc")[::-1]):
             if not filename.isdigit(): continue
             read_proc_mem(filename)
         

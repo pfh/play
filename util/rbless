@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 
 import sys, os
 dirname = os.path.abspath(sys.argv[1])
@@ -27,14 +27,14 @@ LaTeX: pdfLaTeX"""
 
 
 
-filename = os.path.join(dirname,os.path.basename(dirname)+".sublime-project")
-print filename
-if os.path.exists(filename):
-    print "Already a sublime project"
-else:
-    with open(filename, "wt") as f:
-        print >> f, """\
-{
-    "folders" : [ { "path" : "." } ]
-}"""
+#filename = os.path.join(dirname,os.path.basename(dirname)+".sublime-project")
+#print filename
+#if os.path.exists(filename):
+#    print "Already a sublime project"
+#else:
+#    with open(filename, "wt") as f:
+#        print >> f, """\
+#{
+#    "folders" : [ { "path" : "." } ]
+#}"""
 
